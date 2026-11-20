@@ -20,6 +20,7 @@ PDFを1ページずつに分割し、Excelのセル値でファイル名を付�
 - `tools/verify_gui_display.py`: GUIを実ウィンドウとして一瞬表示し、描画を確認してから閉じるスモーク
 - `tools/make_samples.py`: 検証用サンプル資料（本文に文字がある5ページPDFとExcel）を作るスクリプト
 - `tools/run_sample_split.py`: サンプル資料で両モードの分割を実実行し、`samples\検証結果` に保存して機械判定するスクリプト
+- `tools/make_dist.py`: 配布用の最小パッケージ（受け取り用フォルダーと zip）を作るスクリプト
 - `samples/`: 検証用資料（`sample_5pages.pdf` / `sample_names.xlsx`）と分割結果（`検証結果\連番`・`検証結果\セル別`）
 - `起動.bat`: ダブルクリックで起動
 - `docs/`: 要件定義・実装依頼などのプロジェクト文書
@@ -118,9 +119,31 @@ python tools\verify_independent.py
 ```text
 python tools\verify_assistant.py
 python tools\verify_gui_display.py
+python tools\run_sample_split.py
 ```
 
-v1.0.0 での実測値（Windows / Python 3.15.2・pypdf 7.1.1・openpyxl 3.1.5）: `python -m unittest -v` が `Ran 57 tests` / `OK`、`tools\verify_independent.py` が `TOTAL: 14/14`、`tools\verify_assistant.py` が `TOTAL: 42/42`、`tools\verify_gui_display.py` が `TOTAL: 1/1`（実ウィンドウ 751x601 px）。詳細は `docs/PROJECT_DOCUMENT.md` 第5章。
+v1.0.0 での実測値（Windows / Python 3.15.2・pypdf 7.1.1・openpyxl 3.1.5）: `python -m unittest -v` が `Ran 57 tests` / `OK`、`tools\verify_independent.py` が `TOTAL: 14/14`、`tools\verify_assistant.py` が `TOTAL: 42/42`、`tools\verify_gui_display.py` が `TOTAL: 1/1`（実ウィンドウ 751x601 px）、`tools\run_sample_split.py` が `TOTAL: 13/13`。詳細は `docs/PROJECT_DOCUMENT.md` 第5章。
+
+## 実際に動かすための最小ファイルと配布パッケージ
+
+実際に動かすだけなら、次の4つの Python ファイル＋`起動.bat` だけで動きます（`test_pdf_split_unified.py` は開発用の単体テストで、動作には不要です。`tools/`・`samples/`・`docs/`・`refs/` も配布しなくて構いません）。
+
+| ファイル | 区分 |
+| --- | --- |
+| `pdf_split_unified.py` | 必須（起動の入口） |
+| `split_core.py` / `modes.py` / `preview.py` | 必須（共通コア・モード・プレビュー。どれか1つ欠いても起動しない） |
+| `起動.bat` | 必須（ダブルクリック起動。Python を探し、`pypdf`/`openpyxl` が無ければ自動導入） |
+| `README.md` / `LICENSE` / `LICENSE.ja.md` | 推奨（使い方とライセンス表示） |
+
+受け取り用にまとめるスクリプトがあります（`dist\pdf-split-unified\` と `dist\pdf-split-unified-v<版>-min.zip` を生成。zip には `pdf-split-unified/` フォルダー1個として8ファイルが入ります）。
+
+```text
+python tools\make_dist.py
+```
+
+生成された zip の中身は8ファイルで破損なし（19 KB 前後。厳密なサイズとハッシュ値は `docs/PROJECT_DOCUMENT.md` 4.4 に実測値として記録しています。README 自体が zip に入るため、ここに byte 数を書くと更新のたびにずれるため省略）。
+
+受け取り側の要件は Windows と Python 3.10 以降だけで、`pypdf` と `openpyxl` は `起動.bat` が導入します。`dist/` は生成物なので git には入れません（`.gitignore` 済み）。
 
 ## ライセンス
 

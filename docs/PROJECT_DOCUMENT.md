@@ -214,6 +214,37 @@ GUIを一瞬だけ実ウィンドウとして表示し、描画確認後に閉�
 
 `tools/run_sample_split.py` は実際の処理系（`split_core.split_pdf` ＋ `modes.build_filenames`）を呼んで両モードを実行し、出力件数・各PDFのページ数・本文のページ指定文字列が対応しているか・元PDF/Excelのハッシュ無変更・同じ場所への再実行が上書き中止になるかを機械判定する。
 
+### 4.4 配布用最小パッケージ
+
+ユーザーが実際に動かすために必要なファイルは「Python 4本＋`起動.bat`」で、それ以外を開発・検証用資産として切り分けた。`tools/make_dist.py` が受け取り用フォルダーと zip を生成する。
+
+```text
+.venv\Scripts\python.exe tools\make_dist.py
+```
+
+生成物と実測値（v1.0.0）:
+
+| 対象 | 実測 |
+| --- | --- |
+| `dist/pdf-split-unified/` | 8ファイル・44,573 バイト |
+| `dist/pdf-split-unified-v1.0.0-min.zip` | 19,054 バイト（SHA-256 `34364A8E2C827D3B3F8D1FF625ACB254128FEF6E1F5D2A9E0C0D568F01A15DE6`）／zip内は8エントリで破損なし |
+
+zip には `pdf-split-unified/` フォルダー1個として8ファイルが収まる:
+
+| ファイル | 配布区分 | 根拠 |
+| --- | --- | --- |
+| `pdf_split_unified.py` | 必須 | 起動の入口（画面・タブ・プレビュー表） |
+| `split_core.py` | 必須 | 共通コア。欠けると `ModuleNotFoundError` |
+| `modes.py` | 必須 | 2モードのファイル名生成 |
+| `preview.py` | 必須 | 分割前プレビュー |
+| `起動.bat` | 必須（実運用） | ダブルクリック起動。Python を探し、`pypdf`/`openpyxl` が無ければ導入する |
+| `README.md` | 推奨 | 使い方とエラーメッセージの意味 |
+| `LICENSE` / `LICENSE.ja.md` | 推奨 | 元ツール2本のライセンス表示（配布時に表示が必要になる可能性がある） |
+
+配布しない: `test_pdf_split_unified.py`（単体テスト。無くても動くことを zip 展開で実証）、`tools/`、`samples/`、`docs/`、`refs/`、`.gitignore`、`__pycache__/`、`.venv/`（このPC専用。受け取り側では `起動.bat` がライブラリを入れる）。`dist/` は生成物なので git 管理しない（`.gitignore` に追加済み）。
+
+受け取り側の要件は Windows と Python 3.10 以降のみ。`pypdf` と `openpyxl` は `起動.bat` が `pip install --user` で自動導入する（この自動導入は開発PCの環境を変えないため本PCでは実行していない。zip 展開後の4ファイルでのGUI起動は検証済み）。
+
 ## 5. 検証結果（アシスタントの独立検証値）
 
 実施日: 2026-11-20（実装セッションでの実測値。実行環境: Windows / Python 3.15.2（プロジェクト内 `.venv`）、pypdf 7.1.1、openpyxl 3.1.5）
@@ -234,6 +265,7 @@ GUIを一瞬だけ実ウィンドウとして表示し、描画確認後に閉�
 | `.venv\Scripts\python.exe tools\verify_assistant.py`（新規・アシスタント設計） | `TOTAL: 42/42`（全PASS） | 0 |
 | `.venv\Scripts\python.exe tools\verify_gui_display.py`（新規・実表示スモーク） | `TOTAL: 1/1`。実ウィンドウ 751x601 px が表示可能、プレビュー4行が描画（先頭行の描画領域 700x17 px） | 0 |
 | `.venv\Scripts\python.exe tools\run_sample_split.py`（サンプル資料で両モードを実実行） | `TOTAL: 13/13`（全PASS） | 0 |
+| `.venv\Scripts\python.exe tools\make_dist.py`（配布用最小パッケージ生成） | `PASS: zip内は8ファイルで一致・破損なし（8 エントリ）`。zip 19,054 バイト。展開後の4ファイル＋batで GUI 実起動（751x601 px） | 0 |
 
 `tools/verify_assistant.py` が実データ（自前で生成した4ページ・3ページ・1005ページのPDFとExcel）で確認した主な項目と実測値:
 

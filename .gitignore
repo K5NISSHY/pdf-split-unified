@@ -12,6 +12,9 @@ __pycache__/
 out/
 output/
 
+# 配布用パッケージ（tools/make_dist.py で再生成できる。zip と受け取り用フォルダーは管理しない）
+dist/
+
 # エディター・OS
 .vscode/
 Thumbs.db
