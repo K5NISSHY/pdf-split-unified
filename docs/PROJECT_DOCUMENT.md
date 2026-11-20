@@ -192,6 +192,28 @@ GUIを一瞬だけ実ウィンドウとして表示し、描画確認後に閉�
 .venv\Scripts\python.exe tools\verify_gui_display.py
 ```
 
+### 4.3 サンプル資料による両モードの実行検証
+
+【追加（2026-11-20）: ユーザー依頼による検証資産の追加。承認済みの製品スコープ（1.2 / 1.5）の変更ではなく、リポジトリ内の検証用資産として `samples/` と `tools/make_samples.py` / `tools/run_sample_split.py` を加えた（FR-1〜FR-15 の変更なし）】
+
+リポジトリに検証用のサンプル資料と同実行スクリプトを同梱している（追加ライブラリは使わず、PDFへの文字描画は pypdf のテキスト命令で行っている）。
+
+| 資料 | 内容 |
+| --- | --- |
+| `samples/sample_5pages.pdf` | 本文に文字が入ったA4判5ページの見本PDF（各ページに「Page n of 5」と見出し。`tools/make_samples.py` で決定論的に生成） |
+| `samples/sample_names.xlsx` | シート「サンプル」。A1 = 「セル値＋連番」モードのベース名 `サンプル統合テスト`、B1:B5 = 「セル別（連番なし）」モードのページ別名（`01_表紙` / `02_見積内訳` / `03_納品書` / `04_請求書` / `05_検収報告`）。D列に読み取りセルの説明 |
+| `samples/検証結果/連番/` | A1 を使った分割結果 5件（`サンプル統合テスト_001.pdf`〜`_005.pdf`） |
+| `samples/検証結果/セル別/` | B1 を開始セルにした分割結果 5件（`01_表紙.pdf`〜`05_検収報告.pdf`） |
+
+再生成と再検証は次でまとめて行える（結果フォルダーは毎回作り直される）。
+
+```text
+.venv\Scripts\python.exe tools\make_samples.py
+.venv\Scripts\python.exe tools\run_sample_split.py
+```
+
+`tools/run_sample_split.py` は実際の処理系（`split_core.split_pdf` ＋ `modes.build_filenames`）を呼んで両モードを実行し、出力件数・各PDFのページ数・本文のページ指定文字列が対応しているか・元PDF/Excelのハッシュ無変更・同じ場所への再実行が上書き中止になるかを機械判定する。
+
 ## 5. 検証結果（アシスタントの独立検証値）
 
 実施日: 2026-11-20（実装セッションでの実測値。実行環境: Windows / Python 3.15.2（プロジェクト内 `.venv`）、pypdf 7.1.1、openpyxl 3.1.5）
@@ -211,6 +233,7 @@ GUIを一瞬だけ実ウィンドウとして表示し、描画確認後に閉�
 | `.venv\Scripts\python.exe tools\verify_independent.py` | `TOTAL: 14/14`（全PASS） | 0 |
 | `.venv\Scripts\python.exe tools\verify_assistant.py`（新規・アシスタント設計） | `TOTAL: 42/42`（全PASS） | 0 |
 | `.venv\Scripts\python.exe tools\verify_gui_display.py`（新規・実表示スモーク） | `TOTAL: 1/1`。実ウィンドウ 751x601 px が表示可能、プレビュー4行が描画（先頭行の描画領域 700x17 px） | 0 |
+| `.venv\Scripts\python.exe tools\run_sample_split.py`（サンプル資料で両モードを実実行） | `TOTAL: 13/13`（全PASS） | 0 |
 
 `tools/verify_assistant.py` が実データ（自前で生成した4ページ・3ページ・1005ページのPDFとExcel）で確認した主な項目と実測値:
 
@@ -224,6 +247,13 @@ GUIを一瞬だけ実ウィンドウとして表示し、描画確認後に閉�
 - FR-13: PDF不在・Excel拡張子（`.txt`）・出力先不在の各文言（参考コードと同一の検査順であることを refs と付き合わせて確認）
 - FR-14: `[既存] [重複]` / `[重複]` / 無印 の混在、プレビューでの書き出し0件・既存ファイルのハッシュ無変更、105件中100件表示＋「ほか 5 件」（データは全件保持）、GUI一覧は1005件で100行＋「ほか 905 件」
 - FR-1 / FR-2 / FR-11 / FR-15: ttk.Notebook のタブ2枚（「セル値＋連番」「セル別（連番なし）」）とアクティブタブからのモード判定、操作ボタンは「プレビュー」「分割を実行」の2つ、一覧列はページ番号/出力ファイル名/状態、入力変更で一覧消去＋「入力変更あり: プレビューを更新してください」、実行時は最新入力（`A2`）で再計算され `かきく_001..004.pdf` が生成、未入力時は警告のみで実行しない
+
+サンプル資料（`samples/sample_5pages.pdf` と `samples/sample_names.xlsx`）で実際の処理系を走らせた結果（`tools/run_sample_split.py`、13/13）:
+
+- 連番モード（A1）: `サンプル統合テスト_001.pdf`〜`_005.pdf` の5件が `samples/検証結果/連番/` に保存され、各PDFはちょうど1ページ（`[1, 1, 1, 1, 1]`）
+- セル別モード（B1:B5）: `01_表紙.pdf` / `02_見積内訳.pdf` / `03_納品書.pdf` / `04_請求書.pdf` / `05_検収報告.pdf` の5件が `samples/検証結果/セル別/` に保存され、各PDFはちょうど1ページ
+- 本文文字の対応を実測: 1ページ目「Page 1 of 5 / Cover sheet」→ `サンプル統合テスト_001.pdf` および `01_表紙.pdf`、5ページ目「Page 5 of 5 / Acceptance report」→ `_005.pdf` および `05_検収報告.pdf`（分割後も本文テキストが抽出できる）
+- セル参照とB列名の大文字小文字無視の重複は無く、一時フォルダー `.pdf_split_*` の残留0、元PDF・元ExcelのSHA-256一致、同じ結果フォルダーへの再実行は `FileExistsError`（表示例 `サンプル統合テスト_001.pdf`）で既存成果物は無変更
 
 付記（Windows の仕様の整合）: 大文字小文字の違う `report.pdf` は、出力先に `Report.pdf` があると Windows の大文字小文字を区別しないファイル名の性質から `[既存]` も同時に付く。実装側の `[重複]` 判定（`casefold`）と矛盾していないことを確認済み。
 
