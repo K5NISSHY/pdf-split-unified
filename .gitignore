@@ -15,6 +15,9 @@ output/
 # 配布用パッケージ（tools/make_dist.py で再生成できる。zip と受け取り用フォルダーは管理しない）
 dist/
 
+# 実装・検証以外の作業場（ツール本体ではないため git 管理外）
+blog/
+
 # エディター・OS
 .vscode/
 Thumbs.db
